@@ -5,21 +5,36 @@ import databasePart1.DatabaseHelper;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+
+/**
+ * This class contains unit tests for the DatabaseHelper class, making sure that database operations like posting questions, 
+ * posting answers, listing questions, marking answers as solutions, and deleting questions are functioning correctly.
+ */
 public class DatabaseHelperTest {
 
     private DatabaseHelper dbHelper;
     private Connection connection;
-
+    
+    /**
+     * Sets up the test environment by connecting to the database.
+     * 
+     * @throws SQLException if a database access error occurs.
+     */
     @BeforeEach
-    // connect to database
+    
     public void setUp() throws SQLException {
         dbHelper = new DatabaseHelper();
         dbHelper.connectToDatabase();
         connection = DriverManager.getConnection("jdbc:h2:~/HW2Database", "sa", "");
     }
 
+    /**
+     * Cleans up after each test by closing the database connection.
+     * 
+     * @throws SQLException if a database access error occurs.
+     */
     @AfterEach
-    // disconnect from database
+    
     public void tearDown() throws SQLException {
         dbHelper.closeConnection();
         Statement stmt = connection.createStatement();
@@ -27,12 +42,16 @@ public class DatabaseHelperTest {
         stmt.close();
     }
 
+    /**
+     * Tests the postQuestion method by adding a question to the database.
+     * 
+     * @throws SQLException if an error occurs during the database interaction.
+     */
     @Test
+    
     public void testPostQuestion() throws SQLException {
-    	//create a new question
         Question question = new Question("Test Title", "Test Body", "TestUser");
         dbHelper.postQuestion(question);
-        // see if the question is posted
         String query = "SELECT * FROM questions WHERE title = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setString(1, "Test Title");
@@ -44,12 +63,15 @@ public class DatabaseHelperTest {
         }
     }
 
+    /**
+     * Tests the postAnswer method by adding an answer to an existing question.
+     * 
+     * @throws SQLException if an error occurs during the database interaction.
+     */
     @Test
     public void testPostAnswer() throws SQLException {
-    	// create a new question
         Question question = new Question("Test Question", "Test Body", "TestUser");
         dbHelper.postQuestion(question);
-        // get the id of the new question
         String query = "SELECT id FROM questions WHERE title = ?";
         int questionId = -1;
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -59,10 +81,8 @@ public class DatabaseHelperTest {
                 questionId = rs.getInt("id");
             }
         }
-        // create a new answer
         Answer answer = new Answer("Test Answer", "AnswerUser", questionId);
         dbHelper.postAnswer(answer);
-        // see if the answer is posted
         String answerQuery = "SELECT * FROM answers WHERE underQuestion = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(answerQuery)) {
             pstmt.setInt(1, questionId);
@@ -73,25 +93,31 @@ public class DatabaseHelperTest {
         }
     }
 
+    /**
+     * Tests the listAllQuestions method by verifying that it correctly retrieves all posted questions.
+     * 
+     * @throws SQLException if an error occurs during the database interaction.
+     */
     @Test
     public void testListAllQuestions() throws SQLException {
-    	// create 2 new question
         Question question1 = new Question("Title1", "Body1", "User1");
         Question question2 = new Question("Title2", "Body2", "User2");
         dbHelper.postQuestion(question1);
         dbHelper.postQuestion(question2);
-        // test to see if the listAllQuestion() work as intended
         QuestionList questionList = dbHelper.listAllQuestions();
         assertNotNull(questionList);
         assertEquals(2, questionList.getQuestions().size());
     }
 
+    /**
+     * Tests the markAnswerAsSolution method by marking an answer as the solution.
+     * 
+     * @throws SQLException if an error occurs during the database interaction.
+     */
     @Test
     public void testMarkAnswerAsSolution() throws SQLException {
-    	// create a new question
         Question question = new Question("Test Question", "Test Body", "TestUser");
         dbHelper.postQuestion(question);
-        // get id of the new question
         String query = "SELECT id FROM questions WHERE title = ?";
         int questionId = -1;
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -101,10 +127,8 @@ public class DatabaseHelperTest {
                 questionId = rs.getInt("id");
             }
         }
-        // create a new answer
         Answer answer = new Answer("Test Answer", "AnswerUser", questionId);
         dbHelper.postAnswer(answer);
-        // get the id of the new answer
         String answerQuery = "SELECT id FROM answers WHERE underQuestion = ?";
         int answerId = -1;
         try (PreparedStatement pstmt = connection.prepareStatement(answerQuery)) {
@@ -114,9 +138,7 @@ public class DatabaseHelperTest {
                 answerId = rs.getInt("id");
             }
         }
-        // mark the answer as solution
         dbHelper.markAnswerAsSolution(answerId);
-        // see if the answer is correctly marked as solution
         String solutionQuery = "SELECT isSolution FROM answers WHERE id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(solutionQuery)) {
             pstmt.setInt(1, answerId);
@@ -126,14 +148,16 @@ public class DatabaseHelperTest {
             }
         }
     }
-    
+
+    /**
+     * Tests the deleteQuestion method by deleting a question from the database.
+     * 
+     * @throws SQLException if an error occurs during the database interaction.
+     */
     @Test
     public void testDeleteQuestion() throws SQLException {
-        // create a new question
         Question question = new Question("Test Question", "Test Body", "TestUser");
         dbHelper.postQuestion(question);
-
-        // get the id of the question
         String query = "SELECT id FROM questions WHERE title = ?";
         int questionId = -1;
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -143,17 +167,12 @@ public class DatabaseHelperTest {
                 questionId = rs.getInt("id");
             }
         }
-
-        // delete question
         dbHelper.deleteQuestion(questionId);
-
-        // check if the question is deleted
         String deleteQuery = "SELECT * FROM questions WHERE id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(deleteQuery)) {
             pstmt.setInt(1, questionId);
             ResultSet rs = pstmt.executeQuery();
-            assertTrue(rs.next(), "The question has been deleted.");
+            assertTrue(rs.next(), "The question should be deleted.");
         }
     }
-
 }
